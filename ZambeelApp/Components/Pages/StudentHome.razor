@@ -1,0 +1,619 @@
+@page "/student-home/{StudentId:int}"
+@using ZambeelApp.Services
+@using ZambeelApp.Models
+@inject IZambeelService SP_Service
+@inject Service_LINQ LINQ_Service
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2> Student Dashboard</h2>
+                <button class="btn btn-outline-danger" @onclick="Logout">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <label>
+            <input type="checkbox" @bind="useLinq" /> 
+            <strong>Use LINQ Implementation?</strong> (Current: @(useLinq ? "LINQ" : "Stored Procedures"))
+        </label>
+    </div>
+
+    @if (student != null)
+    {
+        <div class="alert alert-light border">
+            <strong>Welcome, @student.StudentName!</strong> | Student ID: @student.StudentId
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6 mb-3">
+                <button class="btn btn-primary btn-lg btn-block w-100" @onclick="NavigateToEnroll">
+                     Enrollment
+                </button>
+            </div>
+            <div class="col-md-6 mb-3">
+                <button class="btn btn-success btn-lg btn-block w-100" @onclick="@(() => ShowSection("finances"))">
+                     Finances & Residency
+                </button>
+            </div>
+            <div class="col-md-6 mb-3">
+                <button class="btn btn-info btn-lg btn-block w-100" @onclick="@(() => ShowSection("info"))">
+                     Information
+                </button>
+            </div>
+            <div class="col-md-6 mb-3">
+                <button class="btn btn-warning btn-lg btn-block w-100" @onclick="@(() => ShowSection("warden"))">
+                     Warden Roster
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger">Loading student information...</div>
+    }
+
+    <!-- Finances & Residency Section -->
+    @if (currentSection == "finances")
+    {
+        <div class="row mt-5">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h4> Pending Dues & Residency Information</h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Pending Dues -->
+                        <div class="mb-4">
+                            <h5>Pending Dues</h5>
+                            @if (pendingDues.Any())
+                            {
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Description</th>
+                                            <th>Amount Due</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var due in pendingDues)
+                                        {
+                                            <tr>
+                                                <td>@due.StudentName</td>
+                                                <td>@due.OutstandingAmount.ToString("F2")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                            else
+                            {
+                                <div class="alert alert-info">No pending dues found.</div>
+                            }
+                        </div>
+
+                        <!-- Room Allocation Status -->
+                        <div class="mb-4">
+                            <h5>Room Allocation Status</h5>
+                            @if (hasRoom)
+                            {
+                                var studentRoom = wardenRoster.FirstOrDefault(w => w.StudentId == StudentId);
+                                <div class="alert alert-success">
+                                    <strong>Room Allocated:</strong> ✓ Yes
+                                </div>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <table class="table table-sm mb-0">
+                                            <tr>
+                                                <td><strong>Hostel:</strong></td>
+                                                <td>@(studentRoom?.HostelName ?? "N/A")</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Room Number:</strong></td>
+                                                <td>@(studentRoom?.RoomNumber ?? "N/A")</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-warning">
+                                    <strong>Room Allocated:</strong> ✗ No
+                                </div>
+                            }
+                        </div>
+
+
+                        @if (!string.IsNullOrEmpty(financesMessage))
+                        {
+                            <div class="alert @(financesError ? "alert-danger" : "alert-success")">
+                                @financesMessage
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Information Section -->
+    @if (currentSection == "info")
+    {
+        <div class="row mt-5">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h4> Student & School Information</h4>
+                    </div>
+                    <div class="card-body">
+                        @if (student != null)
+                        {
+                            <div class="mb-4">
+                                <h5>Student Details</h5>
+                                <table class="table">
+                                    <tr>
+                                        <td><strong>Student ID:</strong></td>
+                                        <td>@student.StudentId</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Name:</strong></td>
+                                        <td>@student.StudentName</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Department:</strong></td>
+                                        <td>@student.DepartmentName</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>School:</strong></td>
+                                        <td>@student.SchoolName</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>CGPA:</strong></td>
+                                        <td>@(student.Cgpa?.ToString("F2") ?? "N/A")</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Current Year:</strong></td>
+                                        <td>@(student.CurrentYear ?? "N/A")</td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <div class="mb-4">
+                                <h5>School Statistics</h5>
+                                
+                                <!-- School Dropdown -->
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Select School:</strong></label>
+                                    <select class="form-select" @bind="selectedSchoolId" @bind:after="OnSchoolChanged">
+                                        <option value="0">-- Select a School --</option>
+                                        @foreach (var school in allSchools)
+                                        {
+                                            <option value="@school.SchoolId">@school.Name</option>
+                                        }
+                                    </select>
+                                </div>
+
+                                @if (selectedSchoolId > 0 && selectedSchoolInfo != null)
+                                {
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card bg-light">
+                                                <div class="card-body">
+                                                    <h6>Students in @selectedSchoolInfo.SchoolName</h6>
+                                                    <p class="h4">@selectedSchoolInfo.Students.Count</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card bg-light">
+                                                <div class="card-body">
+                                                    <h6>Professors in @selectedSchoolInfo.SchoolName</h6>
+                                                    <p class="h4">@selectedSchoolInfo.Professors.Count</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Toggle Buttons -->
+                                    <div class="mt-3 mb-3">
+                                        <button class="btn @(showStudents ? "btn-primary" : "btn-outline-primary") me-2" @onclick="ShowStudentsTable">
+                                             View Students
+                                        </button>
+                                        <button class="btn @(showProfessors ? "btn-success" : "btn-outline-success")" @onclick="ShowProfessorsTable">
+                                             View Professors
+                                        </button>
+                                    </div>
+                                }
+                                else if (selectedSchoolId == 0)
+                                {
+                                    <div class="alert alert-info">Please select a school to view statistics.</div>
+                                }
+                            </div>
+
+                            @if (selectedSchoolId > 0 && selectedSchoolInfo != null && showStudents)
+                            {
+                                <div class="mb-4">
+                                    <h5>Students in Batch @GetStudentBatch(StudentId) in @selectedSchoolInfo.SchoolName</h5>
+                                    @if (GetBatchStudents().Any())
+                                    {
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Student ID</th>
+                                                    <th>Name</th>
+                                                    <th>Email</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var s in GetBatchStudents())
+                                                {
+                                                    <tr>
+                                                        <td>@s.StudentId</td>
+                                                        <td>@s.Name</td>
+                                                        <td>@s.Email</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    }
+                                    else
+                                    {
+                                        <div class="alert alert-info">No students found in your batch in this school.</div>
+                                    }
+                                </div>
+                            }
+
+                            @if (selectedSchoolId > 0 && selectedSchoolInfo != null && showProfessors)
+                            {
+                                <div class="mb-4">
+                                    <h5>Professors in @selectedSchoolInfo.SchoolName</h5>
+                                    @if (selectedSchoolInfo.Professors.Any())
+                                    {
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Professor ID</th>
+                                                    <th>Name</th>
+                                                    <th>Email</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var prof in selectedSchoolInfo.Professors)
+                                                {
+                                                    <tr>
+                                                        <td>@prof.ProfessorId</td>
+                                                        <td>@prof.Name</td>
+                                                        <td>@prof.Email</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    }
+                                    else
+                                    {
+                                        <div class="alert alert-info">No professors found in this school.</div>
+                                    }
+                                </div>
+                            }
+                        }
+
+                        @if (!string.IsNullOrEmpty(infoMessage))
+                        {
+                            <div class="alert @(infoError ? "alert-danger" : "alert-success")">
+                                @infoMessage
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Warden Roster Section -->
+    @if (currentSection == "warden")
+    {
+        <div class="row mt-5">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h4> Warden Roster</h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- PIN Protection -->
+                        @if (!wardenRosterUnlocked)
+                        {
+                            <div class="card bg-light mb-4">
+                                <div class="card-body">
+                                    <h5>Enter PIN to View Warden Roster</h5>
+                                    <div class="form-group">
+                                        <label>PIN:</label>
+                                        <input type="password" class="form-control" @bind="wardenRosterPin" placeholder="Enter PIN" />
+                                    </div>
+                                    <button class="btn btn-warning" @onclick="UnlockWardenRoster">View Roster</button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-success mb-4">
+                                <button class="btn btn-sm btn-warning float-end" @onclick="LockWardenRoster">Lock</button>
+                                Warden Roster Unlocked
+                            </div>
+
+                            <!-- Hostel Selection Dropdown -->
+                            <div class="mb-4">
+                                <label class="form-label"><strong>Select Hostel:</strong></label>
+                                <select class="form-select" @bind="selectedHostel">
+                                    <option value="">-- Select a Hostel --</option>
+                                    @foreach (var hostel in GetHostelList())
+                                    {
+                                        <option value="@hostel">@hostel</option>
+                                    }
+                                </select>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(selectedHostel))
+                            {
+                                <h5>Students in @selectedHostel</h5>
+                                @if (GetFilteredWardenRoster().Any())
+                                {
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Student ID</th>
+                                                <th>Student Name</th>
+                                                <th>Room Number</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var entry in GetFilteredWardenRoster())
+                                            {
+                                                <tr>
+                                                    <td>@entry.StudentId</td>
+                                                    <td>@entry.StudentName</td>
+                                                    <td>@entry.RoomNumber</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-info">No students allocated to rooms in this hostel.</div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="alert alert-info">Please select a hostel to view the roster.</div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int StudentId { get; set; }
+
+    private bool useLinq = false;
+    private string? currentSection = null;
+
+    private StudentInfoDTO? student;
+    private SchoolInfoDTO? schoolInfo;
+    private List<FinanceReportDTO> pendingDues = new();
+    private List<FreeRoomDTO> freeRooms = new();
+    private List<WardenRosterDTO> wardenRoster = new();
+    private bool hasRoom = false;
+
+    private List<SchoolBasicDTO> allSchools = new();
+    private int selectedSchoolId = 0;
+    private SchoolInfoDTO? selectedSchoolInfo = null;
+    private bool showStudents = false;
+    private bool showProfessors = false;
+
+    private string financesMessage = "";
+    private bool financesError = false;
+    private string infoMessage = "";
+    private bool infoError = false;
+
+    private string wardenRosterPin = "";
+    private bool wardenRosterUnlocked = false;
+    private const string WARDEN_ROSTER_PIN = "1234";
+    private string selectedHostel = "";
+
+    protected override void OnInitialized()
+    {
+        LoadStudentInfo();
+        LoadAllSchools();
+    }
+
+    private void LoadStudentInfo()
+    {
+        IZambeelService activeService = useLinq ? (IZambeelService)LINQ_Service : SP_Service;
+        student = activeService.GetStudentInfo(StudentId);
+        
+        if (student != null && student.SchoolId > 0)
+        {
+            schoolInfo = activeService.GetSchoolInfo(student.SchoolId);
+        }
+    }
+
+    private void LoadAllSchools()
+    {
+        IZambeelService activeService = useLinq ? (IZambeelService)LINQ_Service : SP_Service;
+        allSchools = activeService.GetAllSchools();
+    }
+
+    private void OnSchoolChanged()
+    {
+        if (selectedSchoolId > 0)
+        {
+            IZambeelService activeService = useLinq ? (IZambeelService)LINQ_Service : SP_Service;
+            selectedSchoolInfo = activeService.GetSchoolInfo(selectedSchoolId);
+        }
+        else
+        {
+            selectedSchoolInfo = null;
+        }
+        
+        // Reset toggle flags
+        showStudents = false;
+        showProfessors = false;
+    }
+
+    private void ShowStudentsTable()
+    {
+        showStudents = true;
+        showProfessors = false;
+    }
+
+    private void ShowProfessorsTable()
+    {
+        showStudents = false;
+        showProfessors = true;
+    }
+
+    private void ShowSection(string section)
+    {
+        currentSection = section;
+        wardenRosterUnlocked = false;
+        wardenRosterPin = "";
+        selectedHostel = "";
+        
+        if (section == "finances")
+        {
+            LoadFinancesData();
+        }
+        else if (section == "info")
+        {
+            // Info is already loaded
+        }
+        else if (section == "warden")
+        {
+            LoadWardenRosterData();
+        }
+    }
+
+    private void LoadFinancesData()
+    {
+        try
+        {
+            IZambeelService activeService = useLinq ? (IZambeelService)LINQ_Service : SP_Service;
+            pendingDues = activeService.GetStudentFinances(StudentId);
+            freeRooms = activeService.GetFreeRooms();
+            wardenRoster = activeService.GetWardenRoster();
+            
+            Console.WriteLine($"DEBUG: Warden Roster Count: {wardenRoster.Count}");
+            foreach (var entry in wardenRoster)
+            {
+                Console.WriteLine($"DEBUG: Student {entry.StudentId} in room {entry.RoomNumber}");
+            }
+            
+            // Check if student has room allocated
+            hasRoom = wardenRoster.Any(w => w.StudentId == StudentId);
+            Console.WriteLine($"DEBUG: Student {StudentId} has room: {hasRoom}");
+            
+            financesError = false;
+        }
+        catch (Exception ex)
+        {
+            financesError = true;
+            financesMessage = $"Error: {ex.Message}\n{ex.StackTrace}";
+            Console.WriteLine($"ERROR: {ex.Message}");
+            Console.WriteLine($"STACK: {ex.StackTrace}");
+        }
+    }
+
+    private void NavigateToEnroll()
+    {
+        NavigationManager.NavigateTo($"/enroll/{StudentId}");
+    }
+
+    private void Logout()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+
+    private string GetStudentBatch(int studentId)
+    {
+        // Extract first two digits of student ID as batch
+        return studentId.ToString().Substring(0, 2);
+    }
+
+    private List<StudentBasicDTO> GetBatchStudents()
+    {
+        if (selectedSchoolInfo == null || selectedSchoolInfo.Students == null)
+            return new List<StudentBasicDTO>();
+
+        string currentBatch = GetStudentBatch(StudentId);
+        
+        return selectedSchoolInfo.Students
+            .Where(s => s.StudentId.ToString().Length >= 2 && s.StudentId.ToString().Substring(0, 2) == currentBatch)
+            .ToList();
+    }
+
+    private void LoadWardenRosterData()
+    {
+        try
+        {
+            IZambeelService activeService = useLinq ? (IZambeelService)LINQ_Service : SP_Service;
+            wardenRoster = activeService.GetWardenRoster();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading warden roster: {ex.Message}");
+            wardenRoster = new List<WardenRosterDTO>();
+        }
+    }
+
+    private void UnlockWardenRoster()
+    {
+        if (wardenRosterPin == WARDEN_ROSTER_PIN)
+        {
+            wardenRosterUnlocked = true;
+            wardenRosterPin = "";
+        }
+        else
+        {
+            // Show error - could be improved with a message
+            wardenRosterPin = "";
+            System.Diagnostics.Debug.WriteLine("Incorrect PIN");
+        }
+    }
+
+    private void LockWardenRoster()
+    {
+        wardenRosterUnlocked = false;
+        wardenRosterPin = "";
+        selectedHostel = "";
+    }
+
+    private List<string> GetHostelList()
+    {
+        return wardenRoster
+            .Where(r => !string.IsNullOrEmpty(r.HostelName))
+            .Select(r => r.HostelName!)
+            .Distinct()
+            .OrderBy(h => h)
+            .ToList();
+    }
+
+    private List<WardenRosterDTO> GetFilteredWardenRoster()
+    {
+        if (string.IsNullOrEmpty(selectedHostel))
+            return new List<WardenRosterDTO>();
+
+        return wardenRoster
+            .Where(r => r.HostelName == selectedHostel)
+            .OrderBy(r => r.RoomNumber)
+            .ToList();
+    }
+}

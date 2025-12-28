@@ -1,0 +1,14 @@
+Project: Zambeel+ (High Availability SQL Cluster)
+
+Required Software:
+1. Docker Desktop (with Kubernetes enabled)
+2. .NET 8.0 SDK (or .NET 6.0/7.0 compatible with .NET Core)
+3. Visual Studio Code (or Azure Data Studio) for editing configs
+4. Browser (Chrome/Edge/Safari) for Application Demo
+
+Required Files (Provided in Folder):
+- mssql-secret.yaml
+- mssql-storage.yaml
+- mssql-deployment.yaml
+- Phase2.sql (Schema + Data)
+- Source Code (ZambeelPlus App)
