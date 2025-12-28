@@ -40,7 +40,7 @@ To execute this project, the host machine requires:
 * `k8s/data_loading_commands.txt`: Commands to populate Schema + 840k records.
 * `k8s/mssql-deployment.yaml`: HA Deployment with NodePort 1433.
 * `k8s/mssql-storage.yaml`: Persistent Volume Config.
-* `k8s/mssql-secret.yaml`: SA Password Configuration.
+* `k8s/mssql-secret.yaml`: SA Password Configuration. (redacted from repo)
 * `SQL/Phase2.sql`: Combined Schema creation and Data insertion.
 * `ZambeelApp/`: C# ASP.NET Core Application Source Code.
 
