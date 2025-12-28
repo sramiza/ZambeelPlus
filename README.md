@@ -40,9 +40,9 @@ To execute this project, the host machine requires:
 /k8s
   |-- setup_commands.bat        (Double-click to deploy the entire cluster)
   |-- data_loading_commands.txt (Commands to populate Schema + 840k records)
-  |-- mssql-deployment.yaml     (HA Deployment with NodePort 31433)
+  |-- mssql-deployment.yaml     (HA Deployment with NodePort 1433)
   |-- mssql-storage.yaml        (Persistent Volume Config)
-  |-- mssql-secret.yaml         (SA Password Configuration)
+  |-- mssql-secret.yaml         (SA Password Configuration - redacted from repo)
 
 /SQL
   |-- Phase2.sql                (Combined Schema creation and Data insertion)
